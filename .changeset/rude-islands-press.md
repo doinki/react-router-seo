@@ -1,5 +1,0 @@
----
-"react-router-seo": patch
----
-
-🎉
