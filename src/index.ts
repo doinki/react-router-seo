@@ -1,10 +1,8 @@
 import { type ServerBuild } from 'react-router';
 
 export interface SeoHandle {
-  handle?: {
-    seo?: {
-      sitemap?: boolean;
-    };
+  seo?: {
+    sitemap?: boolean;
   };
 }
 
@@ -21,7 +19,9 @@ interface ServerRoute extends Route {
   module: ServerRouteModule;
 }
 
-interface ServerRouteModule extends SeoHandle {}
+interface ServerRouteModule {
+  handle?: SeoHandle;
+}
 
 export function generateTree(routes: ServerBuild['routes']): ServerRoute {
   const serverRoutes: Record<string, ServerRoute> = {};
