@@ -50,7 +50,7 @@ export function generateTree(routes: ServerBuild['routes']): ServerRoute {
 export function generatePaths(tree: ServerRoute): string[] {
   const result: string[] = [];
 
-  function treverseTree(node: ServerRoute, fullPath: string[]): void {
+  function traverseTree(node: ServerRoute, fullPath: string[]): void {
     if (node.children.length === 0) {
       if (node.module.handle?.seo?.sitemap !== false) {
         result.push('/' + fullPath.join('/'));
@@ -68,11 +68,11 @@ export function generatePaths(tree: ServerRoute): string[] {
         continue;
       }
 
-      treverseTree(child, [...fullPath, ...child.path]);
+      traverseTree(child, [...fullPath, ...child.path]);
     }
   }
 
-  treverseTree(tree, []);
+  traverseTree(tree, []);
 
   return result;
 }
