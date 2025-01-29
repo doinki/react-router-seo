@@ -3,6 +3,9 @@ import { type ServerBuild } from 'react-router';
 export interface SeoHandle {
   seo?: {
     sitemap?: boolean;
+    generateSitemapEntries?: (
+      request: Request
+    ) => Promise<{ path: string }[]> | { path: string }[];
   };
 }
 
@@ -47,42 +50,77 @@ export function generateTree(routes: ServerBuild['routes']): ServerRoute {
   return serverRoutes.root;
 }
 
-export function generatePaths(tree: ServerRoute): string[] {
+function expandOptionals(path: string[]): string[][] {
+  let results: string[][] = [[]];
+
+  for (const segment of path) {
+    if (segment.at(-1) === '?') {
+      const base = segment.substring(0, segment.length - 1);
+
+      for (let i = 0, len = results.length; i < len; i++) {
+        results.push([...results[i], base]);
+      }
+    } else {
+      for (let i = 0, len = results.length; i < len; i++) {
+        results[i].push(segment);
+      }
+    }
+  }
+
+  return results;
+}
+
+export async function generatePaths(
+  tree: ServerRoute,
+  request: Request
+): Promise<string[]> {
   const result: string[] = [];
 
-  function traverseTree(node: ServerRoute, fullPath: string[]): void {
+  async function traverseTree(
+    node: ServerRoute,
+    fullPath: string[]
+  ): Promise<void> {
     if (node.children.length === 0) {
       if (node.module.handle?.seo?.sitemap !== false) {
-        result.push('/' + fullPath.join('/'));
+        if (node.module.handle?.seo?.generateSitemapEntries) {
+          const entries = await node.module.handle.seo.generateSitemapEntries(
+            request
+          );
+          entries.forEach((entry) => {
+            result.push(entry.path);
+          });
+        } else if (
+          fullPath.every(
+            (segment) => segment[0] !== ':' && !segment.includes('*')
+          )
+        ) {
+          result.push('/' + fullPath.join('/'));
+        }
       }
 
       return;
     }
 
     for (const child of node.children) {
-      if (
-        child.path.some(
-          (path) => path[0] === ':' || path.includes('*') || path.at(-1) === '?'
-        )
-      ) {
-        continue;
+      for (const segments of expandOptionals(child.path)) {
+        traverseTree(child, [...fullPath, ...segments]);
       }
-
-      traverseTree(child, [...fullPath, ...child.path]);
     }
   }
 
-  traverseTree(tree, []);
+  await traverseTree(tree, []);
 
   return result;
 }
 
-export function generateSitemap(
+export async function generateSitemap(
   request: Request,
   routes: ServerBuild['routes'],
   options: { url: string }
-): Response {
-  const paths = generatePaths(generateTree(routes));
+): Promise<Response> {
+  const paths = Array.from(
+    new Set(await generatePaths(generateTree(routes), request))
+  );
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${paths
