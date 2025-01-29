@@ -103,7 +103,7 @@ export async function generatePaths(
 
     for (const child of node.children) {
       for (const segments of expandOptionals(child.path)) {
-        traverseTree(child, [...fullPath, ...segments]);
+        await traverseTree(child, [...fullPath, ...segments]);
       }
     }
   }
