@@ -1,5 +1,11 @@
 # react-router-seo
 
+## 0.1.2
+
+### Patch Changes
+
+- e78ea56: Remove whitespace from <loc> tag
+
 ## 0.1.1
 
 ### Patch Changes
